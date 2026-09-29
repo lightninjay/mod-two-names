@@ -1,6 +1,8 @@
 # AzerothCore module: mod-two-names
 cmake_minimum_required(VERSION 3.16)
 
+include("${CMAKE_CURRENT_LIST_DIR}/mod-two-names.cmake")
+
 set(MOD_TWO_NAMES_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(mod-two-names INTERFACE)

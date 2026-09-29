@@ -14,6 +14,7 @@
 #include "WorldScript.h"
 #include <algorithm>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace

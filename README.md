@@ -71,13 +71,20 @@ In standard World of Warcraft 3.3.5a, character names are strictly limited to a 
    cd azerothcore/modules
    git clone https://github.com/AlsoNotMehh/mod-two-names.git
    ```
-2. Re-run CMake and compile your server:
+2. Apply the required server hooks from the AzerothCore source root (once):
+   ```bash
+   git apply --ignore-space-change --check modules/mod-two-names/patches/azerothcore-name-hooks.patch
+   git apply --ignore-space-change modules/mod-two-names/patches/azerothcore-name-hooks.patch
+   ```
+   Stock AzerothCore does not include these hooks. See [hook installation and compile-error help](patches/README.md).
+
+3. Re-run CMake and rebuild the core and all modules:
    ```bash
    cmake -B build
    cmake --build build --config Release
    ```
-3. Copy `conf/mod_two_names.conf.dist` to your `worldserver` configs folder as `mod_two_names.conf`.
-4. *(Optional)* If you configure `TwoNames.MaxNameLength > 12`, run `data/sql/db-characters/01_two_names_table_size.sql` on your characters database.
+4. Copy `conf/mod_two_names.conf.dist` to your `worldserver` configs folder as `mod_two_names.conf`.
+5. *(Optional)* If you configure `TwoNames.MaxNameLength > 12`, run `data/sql/db-characters/01_two_names_table_size.sql` on your characters database.
 
 ---
 
