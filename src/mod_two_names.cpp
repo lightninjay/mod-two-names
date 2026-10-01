@@ -104,7 +104,7 @@ namespace
         }
     }
 
-    static bool IsValidLanguageString(std::wstring_view wstr, uint32 strictMask, bool create)
+    static bool IsValidLanguageString(std::wstring const& wstr, uint32 strictMask, bool create)
     {
         if (isBasicLatinString(wstr, false))
             return true;

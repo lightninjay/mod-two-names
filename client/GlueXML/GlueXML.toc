@@ -1,7 +1,9 @@
+##DebugHook.lua
 GlueStrings.lua
 GlueFonts.xml
 GlueFontStyles.xml
 GlueLocalization.xml
+## add new files after here
 
 GlueBasicControls.xml
 GlueParent.xml
@@ -29,6 +31,9 @@ VideoOptionsPanels.xml
 AudioOptionsFrame.xml
 AudioOptionsPanels.xml
 OptionsSelect.xml
-CharacterInfo.lua
-CharacterCreate.lua
+##CameraSelect.xml
+
 TwoNames_CharacterCreate.lua
+
+## This Always Runs Last, Add New Items above it.
+GlueLocalizationPost.xml

@@ -138,12 +138,6 @@ end
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("GLUE_UPDATE_VERSION")
 frame:SetScript("OnUpdate", function(self, elapsed)
-    if CharacterCreateNameEdit then
-        if CharacterCreateNameEdit:GetMaxLetters() ~= 30 then
-            CharacterCreateNameEdit:SetMaxLetters(30)
-        end
-    end
-    
     if CharacterRenameEditBox then
         if CharacterRenameEditBox:GetMaxLetters() ~= 30 then
             CharacterRenameEditBox:SetMaxLetters(30)
@@ -154,19 +148,8 @@ frame:SetScript("OnUpdate", function(self, elapsed)
         CharacterCreateRandomName.TwoNamesHooked = true
         CharacterCreateRandomName:SetScript("OnClick", function(self)
             local name = TwoNames_GenerateRandomName()
-            if CharacterCreateNameEdit then
-                CharacterCreateNameEdit:SetText(name)
-            end
-            PlaySound("gsCharacterCreationLook")
-        end)
-    end
-    
-    if CharCreateRandomizeButton and not CharCreateRandomizeButton.TwoNamesHooked then
-        CharCreateRandomizeButton.TwoNamesHooked = true
-        CharCreateRandomizeButton:SetScript("OnClick", function(self)
-            local name = TwoNames_GenerateRandomName()
-            if CharacterCreateNameEdit then
-                CharacterCreateNameEdit:SetText(name)
+            if CharacterCreate_SetFullName then
+                CharacterCreate_SetFullName(name)
             end
             PlaySound("gsCharacterCreationLook")
         end)

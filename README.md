@@ -14,7 +14,7 @@ A seamless character naming module for **AzerothCore (WotLK 3.3.5a)** that allow
 In standard World of Warcraft 3.3.5a, character names are strictly limited to a single continuous word. Many RP, custom, and modern servers desire first and last names for richer immersion, family lineages, and distinct character identities.
 
 **`mod-two-names`** seamlessly integrates directly into AzerothCore's character creation, name normalization, and validation pipeline:
-- **Same Native Name Box:** Players type their full name (e.g. `John Doe`) directly into the standard character creation and rename input box.
+- **New Last Name Box:** Players type their full name into separate First and Last Name fields.
 - **Smart Auto-Capitalization:** Automatically formats each name part with proper casing regardless of how it was typed (`john doe` ➔ `John Doe`, `JOHN DOE` ➔ `John Doe`, `jOhN dOE` ➔ `John Doe`).
 - **WoW Regulation Compliant:** Enforces strict boundary rules, valid alphabetic character sets, minimum length per name part, and triple consecutive identical letter checks.
 - **Dual-Layer Filter Protection:** Validates the entire name **and** each individual name part against the server's Reserved Names and Profanity Filter tables.
@@ -69,64 +69,58 @@ In standard World of Warcraft 3.3.5a, character names are strictly limited to a 
 1. Place the module in your `azerothcore/modules/` directory:
    ```bash
    cd azerothcore/modules
-   git clone https://github.com/AlsoNotMehh/mod-two-names.git
+   git clone https://github.com/lightninjay/mod-two-names.git
    ```
-2. Apply the required server hooks from the AzerothCore source root (once):
-   ```bash
-   git apply --ignore-space-change --check modules/mod-two-names/patches/azerothcore-name-hooks.patch
-   git apply --ignore-space-change modules/mod-two-names/patches/azerothcore-name-hooks.patch
-   ```
-   Stock AzerothCore does not include these hooks. See [hook installation and compile-error help](patches/README.md).
-
-3. Re-run CMake and rebuild the core and all modules:
+2. Apply the core hooks (Step 1.5 Below), then re-run CMake and compile your server:
    ```bash
    cmake -B build
    cmake --build build --config Release
    ```
-4. Copy `conf/mod_two_names.conf.dist` to your `worldserver` configs folder as `mod_two_names.conf`.
-5. *(Optional)* If you configure `TwoNames.MaxNameLength > 12`, run `data/sql/db-characters/01_two_names_table_size.sql` on your characters database.
+3. Copy `conf/mod_two_names.conf.dist` to your `worldserver` configs folder as `mod_two_names.conf`.
+4. *(Optional)* If you configure `TwoNames.MaxNameLength > 12`, run `data/sql/db-characters/01_two_names_table_size.sql` on your characters database.
+
+---
+
+### Step 1.5: Core hooks (required on cores that lack them)
+
+This module plugs into two `MiscScript` hooks: `CanNormalizePlayerName` and `OnCheckPlayerName`.
+If your core does not have them, the build fails with
+`only virtual member functions can be marked 'override'`. The stock name checks are direct
+function calls, so a module cannot intercept them without these hooks.
+
+`patches/apply_core_patch.py` adds them. The edits are additive only: two hook entries in
+`MiscScript.h`, two dispatchers in `MiscScript.cpp`, two declarations in `ScriptMgr.h`, and a
+hook call at the top of `normalizePlayerName()` and `ObjectMgr::CheckPlayerName()` in `ObjectMgr.cpp`.
+With no script registered the core behaves exactly as before.
+
+```bash
+cd azerothcore-wotlk
+python3 modules/mod-two-names/patches/apply_core_patch.py --check    # optional dry run
+python3 modules/mod-two-names/patches/apply_core_patch.py            # apply
+python3 modules/mod-two-names/patches/apply_core_patch.py --revert   # undo at any time
+```
+
+The script writes nothing unless every edit in the run can be applied cleanly, and it is safe to run
+twice. Because `ScriptMgr.h` changes, do a **full rebuild** of the core afterwards.
 
 ---
 
 ### Step 2: Client `Wow.exe` Patch (Why & How)
 
-#### ❓ Why is a client patch needed?
-In the unmodified World of Warcraft 3.3.5a client (`build 12340`), `Wow.exe` contains a hardcoded client-side alphabetical validation routine (`ValidateName` at virtual address `0x006B0F90` / file offset `0x2B0390`). 
+#### ❓ Why are client patches needed?
+In the unmodified World of Warcraft 3.3.5a client (`build 12340`), `Wow.exe` contains a hardcoded client-side check, to keep people from modifying specific GlueXML interface files using patches.
 
-When a player types a space in the character name box, this client function intercepts it before sending any network packets and immediately displays the pop-up error:
-> *"Names can only contain letters."*
+The python patcher in tools/patch_wow_safe.py, is what allows us to edit the character create screen and add a second text window for the Last Names field. Without this patch, the EXE crashes, stating we have incorrect files and need to reinstall. This isn't true of course, we just need to patch the EXE and then it loads our updated GlueXML's without complaint.
 
-By applying a quick 6-byte patch (`mov eax, 0x57; ret`), `Wow.exe` skips the client-side blocker and forwards the character name straight to AzerothCore via `CMSG_CHAR_CREATE`, where `mod-two-names` handles all the security, word checks, auto-capitalization, and database persistence.
+#### 🔧 Patching Method:
 
-#### 🔧 1-Click Patching Methods:
-
-- **Option A: 1-Click Drag & Drop (`patch_wow.bat`) - Recommended for Players & Admins**
-  - Simply double-click [`patch_wow.bat`](patch_wow.bat) (or drag & drop your `Wow.exe` onto it).
-  - Automatically patches both the space validation check and unlocks character name input length!
-
-- **Option B: PowerShell (Windows native)**
-  ```powershell
-  cd modules/mod-two-names/tools
-  .\patch_wow_exe.ps1 "C:\Path\To\World of Warcraft\Wow.exe"
-  ```
-
-- **Option C: Node.js**
-  ```bash
-  cd modules/mod-two-names/tools
-  node patch_wow_exe.js "C:\Path\To\World of Warcraft\Wow.exe"
-  ```
-
-- **Option D: Python**
-  ```bash
-  cd modules/mod-two-names/tools
-  python patch_wow_exe.py "C:\Path\To\World of Warcraft\Wow.exe"
-  ```
-
-- **Option D: Manual Hex Editor (HxD)**
-  - Open `Wow.exe` in any Hex Editor.
-  - Navigate to offset `0x2B0390`.
-  - Replace the 6 bytes: `55 8B EC 8B 45 08` with `B8 57 00 00 00 C3`.
-  - Save the file.
+```bash
+# Place a copy of your 12340 WoW.exe in the same folder as the patch_wow_safe.py file (azerothcore-wotlk/modules/mod-two-names/tools/WoW.exe)
+cd azerothcore-wotlk
+python3 modules/mod-two-names/tools/patch_wow_safe.py    # optional dry run
+python3 modules/mod-two-names/tools/patch_wow_safe.py --apply       # apply
+# Reanme the original WoW.exe in your wow client folder (to something like WoW.exe.bak), or back it up elsewhere, then copy the patched WoW.exe into your wow client folder.
+```
 
 ---
 
